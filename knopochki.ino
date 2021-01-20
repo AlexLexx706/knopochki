@@ -1,3 +1,5 @@
+
+
 /* Пример кода для руководства по работе с матричной клавиатурой 3x4
    совместно с платой Arduino.
    Данный код выводит значение нажатой на клавиатуре кнопки в 
@@ -58,36 +60,116 @@ void setup()
     matrix.fillScreen(LOW);
     matrix.write();
 }
-
+int flag = 0;
+int x = 0, y = 6;
+int ys[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int flagx = -1, flagy = -1;
 
 // Если кнопка нажата, эта кнопка сохраняется в переменной keypressed.
 // Если keypressed не равна NO_KEY, то выводим значение в последовательный порт.
 void loop()
 {
+  
   char keypressed = kpd.getKey();
   if (keypressed != NO_KEY)
-  { 
-    matrix.fillScreen(LOW);
-    matrix.write();
-    if(keypressed == '1'){
-      matrix.drawCircle( 8, 8, 7, HIGH );
-      matrix.write();
-    }
-    else if(keypressed == '2'){
-      matrix.drawTriangle(2, 12, 8, 2, 16, 12, HIGH);
-      matrix.write();
-    }
-    else if(keypressed == '3'){
-      matrix.drawRect(2, 2, 14, 14, HIGH);
-      matrix.write();
-    }
-    else if(keypressed == '0'){
-      matrix.fillScreen(LOW);
-      matrix.write();
-    }
-
-
+  {
+    Serial.println(flag);
+    if(flag == 0){ 
+        matrix.fillScreen(LOW);
+        matrix.write();
+        if(keypressed == '1'){
+          matrix.drawCircle( 8, 8, 7, HIGH );
+          matrix.write();
+        }
+        else if(keypressed == '2'){
+          matrix.drawTriangle(2, 12, 8, 2, 16, 12, HIGH);
+          matrix.write();
+        }
+        else if(keypressed == '3'){
+          matrix.drawRect(2, 2, 14, 14, HIGH);
+          matrix.write();
+        }
+        else if(keypressed == '0'){
+          matrix.fillScreen(LOW);
+          matrix.write();
+          flag = 1;
+          Serial.println(flag);
+        }
     
-    Serial.println(keypressed);
+        else if(keypressed == '4'){
+          matrix.drawRoundRect(1, 5, 14, 8, 4, HIGH);
+          matrix.write();
+        }
+    
+        else if(keypressed == '5'){
+          matrix.drawLine(5, 3, 11, 3, HIGH);
+          matrix.drawLine(11, 3, 15, 8, HIGH);
+          matrix.drawLine(15, 8, 11, 13, HIGH);
+          matrix.drawLine(11, 13, 5, 13, HIGH);
+          matrix.drawLine(5, 13, 1, 8, HIGH);
+          matrix.drawLine(1, 8, 5, 3, HIGH);
+          matrix.write();
+        }
+    
+        else if(keypressed == '6'){
+          matrix.drawRect(6, 0, 4, 16, HIGH);
+          matrix.drawRect(0, 6, 16, 4, HIGH);
+          matrix.fillRect(6, 0, 4, 16, HIGH);
+          matrix.fillRect(0, 6, 16, 4, HIGH);
+          matrix.write();
+        }
+    
+        
+    }
+    else if(flag == 1){
+
+      if(keypressed == '1'){
+          while(1){
+            matrix.fillScreen(LOW);
+            matrix.write();
+            if(x == 0 || x == 12)
+              flagx*= -1;
+            if(y == 0 || y == 12)
+              flagy*= -1;    
+            
+            matrix.drawRect(x, y, 4, 4, HIGH);
+            matrix.fillRect(x, y, 4, 4, HIGH);
+            matrix.write();
+            Serial.println(x);
+            Serial.println(y);
+            delay(300);
+            x+=flagx;
+            y+=flagy;      
+          }        
+        }
+        
+      else if(keypressed == '2'){
+          
+          while(1){
+            matrix.fillScreen(LOW);
+            matrix.drawLine(5, ys[5], 5, ys[5]+6, HIGH);
+            ys[5]+=1;
+            if(ys[5] == 16)
+              ys[5] = -6;
+            matrix.write();
+            delay(100);
+            
+            matrix.drawLine(6, ys[6], 6, ys[6]+4, HIGH);
+            ys[6]+=1;
+            if(ys[6] == 16)
+              ys[6] = -4;
+            matrix.write();
+            delay(60);
+          }
+          
+       }
+       else if(keypressed == '0'){
+          matrix.fillScreen(LOW);
+          Serial.println("tak blet");
+          matrix.write();
+          flag = 0;
+        }
+    }
   }
+    
 }
