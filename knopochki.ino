@@ -9,6 +9,7 @@
 #include <Adafruit_GFX.h>
 #include <Max72xxPanel.h>
 
+
 #include "Keypad.h"
 
 
@@ -59,6 +60,7 @@ void setup()
     matrix.setRotation( 3, 1 );
     matrix.fillScreen(LOW);
     matrix.write();
+    randomSeed(analogRead(0));
 }
 int flag = 0;
 int timespeed = 300, flagtime = -1;
@@ -148,7 +150,7 @@ void loop()
         }
 
 
-      if(keypressed == '2'){
+      else if(keypressed == '2'){
           while(1){
             matrix.fillScreen(LOW);
             matrix.write();
@@ -175,21 +177,50 @@ void loop()
           
           while(1){
             matrix.fillScreen(LOW);
-            matrix.drawLine(5, ys[5], 5, ys[5]+6, HIGH);
-            ys[5]+=1;
-            if(ys[5] == 16)
-              ys[5] = -6;
+            matrix.drawPixel(random(15), random(15), HIGH);
+            matrix.write();
+            delay(20);
+          }
+      }
+      else if(keypressed == '4'){
+          int a = 7, side = 2;
+          while(1){
+            matrix.fillScreen(LOW);
+            matrix.drawRect(a, a, side, side, HIGH);
+            if(a != 7){
+              matrix.drawRect(a+1, a+1, side-2, side-2, HIGH);
+            }
+            if(a < 6){
+              matrix.drawRect(a+2, a+2, side-4, side-4, HIGH);
+            }
+            matrix.write();
+            delay(80);
+            a--;
+            side+=2;
+            if(a < -2){
+              a = 7;
+              side = 2;
+            }
+            
+          }
+       
+       }
+       else if(keypressed == '5'){
+          int pos = 0, flagpos = 1;
+          while(1){
+            matrix.fillScreen(LOW);
+            matrix.drawLine(pos, 0, pos, 15, HIGH);
+            matrix.drawLine(0, pos, 15, pos, HIGH);
+            matrix.drawLine(0, 15-pos, 15, 15-pos, HIGH);
             matrix.write();
             delay(100);
+            pos+=flagpos;
+
+            if(pos == 15 || pos == 0)
+              flagpos*=-1;
             
-            matrix.drawLine(6, ys[6], 6, ys[6]+4, HIGH);
-            ys[6]+=1;
-            if(ys[6] == 16)
-              ys[6] = -4;
-            matrix.write();
-            delay(60);
           }
-          
+       
        }
        else if(keypressed == '0'){
           matrix.fillScreen(LOW);
