@@ -61,6 +61,7 @@ void setup()
     matrix.write();
 }
 int flag = 0;
+int timespeed = 300, flagtime = -1;
 int x = 0, y = 6;
 int ys[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int flagx = -1, flagy = -1;
@@ -137,13 +138,40 @@ void loop()
             matrix.write();
             Serial.println(x);
             Serial.println(y);
-            delay(300);
+            if(timespeed == 20 || timespeed == 320)
+              flagtime*= -1;
+            delay(timespeed);
+            timespeed+= 10*flagtime;
+            x+=flagx;
+            y+=flagy;      
+          }        
+        }
+
+
+      if(keypressed == '2'){
+          while(1){
+            matrix.fillScreen(LOW);
+            matrix.write();
+            if(x == 0 || x == 11)
+              flagx*= -1;
+            if(y == 0 || y == 11)
+              flagy*= -1;    
+            
+            matrix.drawCircle( x+2, y+2, 2, HIGH );
+            matrix.fillCircle( x+2, y+2, 2, HIGH );
+            matrix.write();
+            Serial.println(x);
+            Serial.println(y);
+            if(timespeed == 20 || timespeed == 320)
+              flagtime*= -1;
+            delay(timespeed);
+            timespeed+= 10*flagtime;
             x+=flagx;
             y+=flagy;      
           }        
         }
         
-      else if(keypressed == '2'){
+      else if(keypressed == '3'){
           
           while(1){
             matrix.fillScreen(LOW);
