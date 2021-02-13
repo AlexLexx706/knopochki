@@ -14,7 +14,7 @@
 
 
 
-int pinCS = 9;
+int pinCS = 10;
 int numberOfHorizontalDisplays = 2; // теперь у нас по-горизонтали 6 матриц
 int numberOfVerticalDisplays = 2; // а по-вертикали, по-прежнему, одна
 Max72xxPanel matrix = Max72xxPanel(pinCS, numberOfHorizontalDisplays, numberOfVerticalDisplays);
@@ -76,6 +76,7 @@ void loop()
   char keypressed = kpd.getKey();
   if (keypressed != NO_KEY)
   {
+    Serial.println(keypressed);
     Serial.println(flag);
     if(flag == 0){ 
         matrix.fillScreen(LOW);
