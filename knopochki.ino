@@ -55,6 +55,7 @@ void setup() {
 	matrix.setRotation( 2, 1 );
 	matrix.setRotation( 3, 1 );
 	matrix.fillScreen(LOW);
+	matrix.drawPixel(0, 15, HIGH);
 	matrix.write();
 	randomSeed(analogRead(0));
 }
@@ -65,11 +66,11 @@ int x = 0, y = 6;
 int ys[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int flagx = -1, flagy = -1;
 
+
 // Если кнопка нажата, эта кнопка сохраняется в переменной keypressed.
 // Если keypressed не равна NO_KEY, то выводим значение в последовательный порт.
 void loop() {
 	char keypressed = kpd.getKey();
-
 	if (keypressed != NO_KEY) {
 		Serial.println(keypressed);
 		Serial.println(flag);
@@ -96,6 +97,7 @@ void loop() {
 				}
 				case '0': {
 					matrix.fillScreen(LOW);
+					matrix.drawPixel(0, 15, HIGH); 
 					matrix.write();
 					flag = 1;
 					Serial.println(flag);
@@ -121,6 +123,11 @@ void loop() {
 					matrix.drawRect(0, 6, 16, 4, HIGH);
 					matrix.fillRect(6, 0, 4, 16, HIGH);
 					matrix.fillRect(0, 6, 16, 4, HIGH);
+					matrix.write();
+					break;
+				}
+				default:{
+					matrix.drawPixel(0, 15, HIGH);
 					matrix.write();
 				}
 			}
@@ -273,6 +280,7 @@ void loop() {
 				}
 				case '0': {
 					matrix.fillScreen(LOW);
+					matrix.drawPixel(0, 15, HIGH); 
 					Serial.println("tak blet");
 					matrix.write();
 					flag = 0;
@@ -281,4 +289,5 @@ void loop() {
 			}
 		}
 	}
+
 }
