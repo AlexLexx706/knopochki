@@ -10,8 +10,6 @@
 
 #include "Keypad.h"
 
-
-
 int pinCS = 10;
 int numberOfHorizontalDisplays = 2; // теперь у нас по-горизонтали 6 матриц
 int numberOfVerticalDisplays = 2; // а по-вертикали, по-прежнему, одна
@@ -46,6 +44,21 @@ byte cPins[Cols]= {4,2,6};		// столбцы с 0 по 2
 // команда для библиотеки клавиатуры
 // инициализирует экземпляр класса Keypad
 Keypad kpd= Keypad(makeKeymap(keymap), rPins, cPins, Rows, Cols);
+
+
+#define EYE_BLINK_STEP_TIMEOUT 30
+struct Eye {
+	int s_x, s_y;
+	int offset;
+	int e_x, e_y;
+	int state;
+
+	unsigned long s_time;
+	unsigned long blink_timeout;
+
+	unsigned long es_time;
+	unsigned long wait_move_timeout;
+};
 
 void setup() {
 	Serial.begin(115200);	// инициализация монитора последовательного порта
@@ -170,12 +183,106 @@ void spiral() {
 // Если keypressed не равна NO_KEY, то выводим значение в последовательный порт.
 
 
-void eyes() {
+void draw_eye(const Eye & eye) {
+	//1. draw base
+	if (eye.offset <= 0 ) matrix.drawLine(eye.s_x + 1, eye.s_y, eye.s_x + 4, eye.s_y, HIGH);
+	if (eye.offset <= 1 ) matrix.drawLine(eye.s_x, eye.s_y + 1, eye.s_x + 5, eye.s_y + 1, HIGH);
+	if (eye.offset <= 2 ) matrix.drawLine(eye.s_x, eye.s_y + 2, eye.s_x + 5, eye.s_y + 2, HIGH);
+	if (eye.offset <= 3 ) matrix.drawLine(eye.s_x, eye.s_y + 3, eye.s_x + 5, eye.s_y + 3, HIGH);
+	if (eye.offset <= 4 ) matrix.drawLine(eye.s_x, eye.s_y + 4, eye.s_x + 5, eye.s_y + 4, HIGH);
+	if (eye.offset <= 5 ) matrix.drawLine(eye.s_x, eye.s_y + 5, eye.s_x + 5, eye.s_y + 5, HIGH);
+	if (eye.offset <= 6 ) matrix.drawLine(eye.s_x, eye.s_y + 6, eye.s_x + 5, eye.s_y + 6, HIGH);
+	if (eye.offset <= 7 ) matrix.drawLine(eye.s_x + 1, eye.s_y + 7, eye.s_x + 4, eye.s_y + 7, HIGH);
+
+	//2. draw center
+	matrix.drawLine(eye.s_x + eye.e_x + 2, eye.s_y + eye.e_y + 3, eye.s_x + eye.e_x + 3, eye.s_y + eye.e_y + 3, LOW);
+	matrix.drawLine(eye.s_x + eye.e_x + 2, eye.s_y + eye.e_y + 4, eye.s_x + eye.e_x + 3, eye.s_y + eye.e_y + 4, LOW);
+	// matrix.drawLine(12 + 1, 3, 11, 3, HIGH);
 
 }
 
+
+void process_eye(Eye & eye) {
+	unsigned long c_time = millis();
+	Serial.print("state:");
+	Serial.print(eye.state);
+	Serial.print(" offset:");
+	Serial.print(eye.offset);
+	Serial.print(" blink_timeout:");
+	Serial.println(eye.blink_timeout);
+
+	switch (eye.state) {
+		//1. start blink
+		case 0: {
+			eye.state = 1;
+			eye.s_time = c_time;
+			break;
+		}
+		//2. move_down
+		case 1: {
+			if (c_time - eye.s_time >= EYE_BLINK_STEP_TIMEOUT) {
+				eye.offset += 1;
+				eye.s_time  = c_time;
+			}
+			// goto move up
+			if (eye.offset >= 6) {
+				eye.offset = 6;
+				eye.state = 2;
+			}
+			break;
+		}
+		case 2: {
+			if (c_time - eye.s_time >= EYE_BLINK_STEP_TIMEOUT) {
+				eye.offset -= 1;
+				eye.s_time  = c_time;
+			}
+
+			// goto wait state
+			if (eye.offset <= 0) {
+				eye.offset = 0;
+				eye.state = 3;
+				eye.blink_timeout = 1000 * random(3, 15);
+			}
+			break;
+		}
+		case 3: {
+			if (c_time - eye.s_time  >= eye.blink_timeout) {
+				eye.offset = 0;
+				eye.s_time  = c_time;
+				eye.state = 0;
+			}
+			break;
+		}
+	}
+
+	//move eye
+	if (c_time - eye.es_time > eye.wait_move_timeout) {
+		eye.e_x = random(-1, 2);
+		eye.e_y = random(-1, 2);
+		eye.wait_move_timeout = 1000 * random(1, 10);
+		eye.es_time = c_time;
+	}
+}
+
+void eyes() {
+	Eye l_e = {1, 0, 0, 1, 1, 0, 3000, 0, 3000};
+	Eye r_e = {9, 0, 0, 1, 1, 0, 3000, 0, 3000};
+
+	while (kpd.getKey() == NO_KEY) {
+		process_eye(l_e);
+		r_e.offset = l_e.offset;
+		r_e.e_x = l_e.e_x;
+		r_e.e_y = l_e.e_y;
+
+		matrix.fillScreen(LOW);
+		draw_eye(l_e);
+		draw_eye(r_e);
+		matrix.write();
+	}
+}
+
 void loop() {
-	// spiral();
+	// eyes();
 	char keypressed = kpd.getKey();
 	if (keypressed != NO_KEY) {
 		Serial.println(keypressed);
@@ -420,6 +527,10 @@ void loop() {
 				}
 				case '8': {
 					spiral();
+					break;
+				}
+				case '9': {
+					eyes();
 					break;
 				}
 				case '0': {
