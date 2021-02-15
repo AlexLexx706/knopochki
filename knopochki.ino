@@ -150,7 +150,11 @@ void spiral() {
 					state = 0;
 					//exit
 					if (offset == 8) {
-						return;
+						x = 0;
+						y = 0;
+						state = 0;
+						offset = 0;
+						matrix.fillScreen(LOW);
 					}
 				} else {
 					y--;
@@ -166,7 +170,12 @@ void spiral() {
 // Если keypressed не равна NO_KEY, то выводим значение в последовательный порт.
 
 
+void eyes() {
+
+}
+
 void loop() {
+	// spiral();
 	char keypressed = kpd.getKey();
 	if (keypressed != NO_KEY) {
 		Serial.println(keypressed);
@@ -368,7 +377,7 @@ void loop() {
 							matrix.drawRect(a+2, a+2, side-4, side-4, HIGH);
 						}
 						matrix.write();
-						delay(80);
+						delay(500);
 						a--;
 						side+=2;
 
