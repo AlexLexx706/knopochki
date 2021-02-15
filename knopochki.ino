@@ -67,8 +67,105 @@ int ys[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int flagx = -1, flagy = -1;
 
 
+void rain() {
+	//simple rain
+	short data[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	int i, j;
+	unsigned long s_time, c_time = millis();
+
+	while (1) {
+		//1. update data
+		for (i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
+			data[i] = data[i] << 1 | (random(2) ? 1 : 0);
+
+			//2. draw collum
+			for (j = 0; j < 16; j++) {
+				matrix.drawPixel(15 - j, i, (1 << j) & data[i] ? HIGH : LOW);
+			}
+		}
+		matrix.write();
+
+		//wait for timeout and check for the keyboard pressed
+		while (1) {
+			if (kpd.getKey() != NO_KEY) {
+				return;
+			} else if ( (c_time = millis()) - s_time >= 1000) {
+				s_time = c_time;
+				break;
+			}
+		}
+	}
+}
+
+void spiral() {
+	int x = 0;
+	int y = 0;
+	int state = 0;
+	int offset = 0;
+	matrix.fillScreen(LOW);
+
+	while (kpd.getKey() == NO_KEY) {
+		matrix.drawPixel(x, y, HIGH);
+		// Serial.print("state:");
+		// Serial.print(state);
+		// Serial.print(" x:");
+		// Serial.print(x);
+		// Serial.print(" y:");
+		// Serial.print(y);
+		// Serial.print(" offset:");
+		// Serial.println(offset);
+
+		switch (state) {
+			//move right
+			case 0: {
+				if (x + 1 > 15 - offset) {
+					state = 1;
+				} else {
+					x++;
+				}
+				break;
+			}
+			//move down
+			case 1: {
+				if (y + 1 > 15 - offset) {
+					state = 2;
+				} else {
+					y++;
+				}
+				break;
+			}
+			//move left
+			case 2: {
+				if (x - 1 < offset) {
+					state = 3;
+					offset++;
+				} else {
+					x--;
+				}
+				break;
+			}
+			//mode up
+			case 3: {
+				if (y - 1 < offset) {
+					state = 0;
+					//exit
+					if (offset == 8) {
+						return;
+					}
+				} else {
+					y--;
+				}
+				break;
+			}
+		}
+		matrix.write();
+		delay(100);
+	}
+}
 // Если кнопка нажата, эта кнопка сохраняется в переменной keypressed.
 // Если keypressed не равна NO_KEY, то выводим значение в последовательный порт.
+
+
 void loop() {
 	char keypressed = kpd.getKey();
 	if (keypressed != NO_KEY) {
@@ -123,6 +220,36 @@ void loop() {
 					matrix.drawRect(0, 6, 16, 4, HIGH);
 					matrix.fillRect(6, 0, 4, 16, HIGH);
 					matrix.fillRect(0, 6, 16, 4, HIGH);
+					matrix.write();
+					break;
+				}
+				case '7': {
+					matrix.drawRect(0, 0, 4, 4, HIGH);
+					matrix.drawRect(0, 4, 4, 4, HIGH);
+					matrix.drawRect(0, 8, 4, 4, HIGH);
+					matrix.drawRect(0, 12, 4, 4, HIGH);
+					matrix.drawRect(4, 2, 4, 4, HIGH);
+					matrix.drawRect(4, 6, 4, 4, HIGH);
+					matrix.drawRect(4, 10, 4, 4, HIGH);
+					matrix.drawRect(8, 4, 4, 4, HIGH);
+					matrix.drawRect(8, 8, 4, 4, HIGH);
+					matrix.drawRect(12, 6, 4, 4, HIGH);
+					matrix.write();
+					break;
+				}
+				case '8': {
+					matrix.drawCircle(3, 7, 4, HIGH);
+					matrix.drawCircle(9, 7, 2, HIGH);
+					matrix.drawCircle(13, 7, 1, HIGH);
+					matrix.write();
+					break;
+				}
+				case '9': {
+					matrix.drawRect(0, 0, 15, 15, HIGH);
+					matrix.drawCircle(7, 7, 6, HIGH);
+					matrix.drawRect(4, 4, 7, 7, HIGH);
+					matrix.drawCircle(7, 7, 2, HIGH);
+
 					matrix.write();
 					break;
 				}
@@ -276,6 +403,14 @@ void loop() {
 						matrix.write();
 						delay(20);
 					}
+					break;
+				}
+				case '7': {
+					rain();
+					break;
+				}
+				case '8': {
+					spiral();
 					break;
 				}
 				case '0': {
