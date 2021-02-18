@@ -62,7 +62,7 @@ struct Eye {
 
 void setup() {
 	Serial.begin(115200);	// инициализация монитора последовательного порта
-	matrix.setIntensity(4); // яркость
+	matrix.setIntensity(0); // яркость
 	matrix.setRotation( 0, 1 );
 	matrix.setRotation( 1, 1 );
 	matrix.setRotation( 2, 1 );
@@ -71,6 +71,7 @@ void setup() {
 	matrix.drawPixel(0, 15, HIGH);
 	matrix.write();
 	randomSeed(analogRead(0));
+	matrix.setIntensity(3); // яркость
 }
 
 int flag = 0;
@@ -78,6 +79,7 @@ int timespeed = 300, flagtime = -1;
 int x = 0, y = 6;
 int ys[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int flagx = -1, flagy = -1;
+char next_key = NO_KEY;
 
 
 void rain() {
@@ -100,7 +102,7 @@ void rain() {
 
 		//wait for timeout and check for the keyboard pressed
 		while (1) {
-			if (kpd.getKey() != NO_KEY) {
+			if ((next_key = kpd.getKey()) != NO_KEY) {
 				return;
 			} else if ( (c_time = millis()) - s_time >= 1000) {
 				s_time = c_time;
@@ -110,6 +112,7 @@ void rain() {
 	}
 }
 
+
 void spiral() {
 	int x = 0;
 	int y = 0;
@@ -117,16 +120,8 @@ void spiral() {
 	int offset = 0;
 	matrix.fillScreen(LOW);
 
-	while (kpd.getKey() == NO_KEY) {
+	while ((next_key = kpd.getKey()) == NO_KEY) {
 		matrix.drawPixel(x, y, HIGH);
-		// Serial.print("state:");
-		// Serial.print(state);
-		// Serial.print(" x:");
-		// Serial.print(x);
-		// Serial.print(" y:");
-		// Serial.print(y);
-		// Serial.print(" offset:");
-		// Serial.println(offset);
 
 		switch (state) {
 			//move right
@@ -197,19 +192,56 @@ void draw_eye(const Eye & eye) {
 	//2. draw center
 	matrix.drawLine(eye.s_x + eye.e_x + 2, eye.s_y + eye.e_y + 3, eye.s_x + eye.e_x + 3, eye.s_y + eye.e_y + 3, LOW);
 	matrix.drawLine(eye.s_x + eye.e_x + 2, eye.s_y + eye.e_y + 4, eye.s_x + eye.e_x + 3, eye.s_y + eye.e_y + 4, LOW);
-	// matrix.drawLine(12 + 1, 3, 11, 3, HIGH);
-
 }
 
+void draw_nose(int x, int y) {
+	matrix.fillRect(x, y, 2, 2, HIGH);
+}
+
+void draw_mouth(int x, int y, char state) {
+	switch (state) {
+		case 0: {
+			matrix.drawLine(x, y, x + 7, y, HIGH);
+			matrix.drawLine(x + 2, y + 1, x + 5, y + 1, HIGH);
+			matrix.drawLine(x + 3, y + 2, x + 4, y + 2, HIGH);
+			break;
+		}
+		case 1: {
+			matrix.drawLine(x, y + 1, x + 7, y + 1, HIGH);
+			break;
+		}
+		case 2: {
+			matrix.drawRect(x + 1, y, 6, 3, HIGH);
+			break;
+		}
+		case 3: {
+			matrix.drawLine(x, y, x + 7, y, HIGH);
+			matrix.drawLine(x + 2, y + 1, x + 5, y + 1, HIGH);
+			matrix.drawLine(x + 7, y, x + 7, y - 1, HIGH);
+			break;
+		}
+		case 4: {
+			matrix.drawLine(x, y + 1, x + 7, y + 1, HIGH);
+			matrix.drawLine(x, y + 2, x + 7, y + 2, HIGH);
+			break;
+		}
+		case 5: {
+			matrix.drawLine(x, y, x + 7, y, HIGH);
+			matrix.drawLine(x + 2, y + 1, x + 5, y + 1, HIGH);
+			matrix.drawLine(x, y, x, y - 1, HIGH);
+			break;
+		}
+	}
+}
 
 void process_eye(Eye & eye) {
 	unsigned long c_time = millis();
-	Serial.print("state:");
-	Serial.print(eye.state);
-	Serial.print(" offset:");
-	Serial.print(eye.offset);
-	Serial.print(" blink_timeout:");
-	Serial.println(eye.blink_timeout);
+	// Serial.print("state:");
+	// Serial.print(eye.state);
+	// Serial.print(" offset:");
+	// Serial.print(eye.offset);
+	// Serial.print(" blink_timeout:");
+	// Serial.println(eye.blink_timeout);
 
 	switch (eye.state) {
 		//1. start blink
@@ -241,7 +273,7 @@ void process_eye(Eye & eye) {
 			if (eye.offset <= 0) {
 				eye.offset = 0;
 				eye.state = 3;
-				eye.blink_timeout = 1000 * random(3, 15);
+				eye.blink_timeout = 500 * random(3, 30);
 			}
 			break;
 		}
@@ -259,7 +291,7 @@ void process_eye(Eye & eye) {
 	if (c_time - eye.es_time > eye.wait_move_timeout) {
 		eye.e_x = random(-1, 2);
 		eye.e_y = random(-1, 2);
-		eye.wait_move_timeout = 1000 * random(1, 10);
+		eye.wait_move_timeout = 500 * random(1, 20);
 		eye.es_time = c_time;
 	}
 }
@@ -267,8 +299,12 @@ void process_eye(Eye & eye) {
 void eyes() {
 	Eye l_e = {1, 0, 0, 1, 1, 0, 3000, 0, 3000};
 	Eye r_e = {9, 0, 0, 1, 1, 0, 3000, 0, 3000};
-
-	while (kpd.getKey() == NO_KEY) {
+	unsigned long s_time = millis();
+	unsigned long c_time = s_time;
+	char mouth_type = 0;
+	unsigned long mouth_duration = 3000;
+	
+	while ((next_key = kpd.getKey()) == NO_KEY) {
 		process_eye(l_e);
 		r_e.offset = l_e.offset;
 		r_e.e_x = l_e.e_x;
@@ -277,17 +313,173 @@ void eyes() {
 		matrix.fillScreen(LOW);
 		draw_eye(l_e);
 		draw_eye(r_e);
+		draw_nose(7, 7);
+
+		//update 
+		draw_mouth(4, 10, mouth_type);
+
+		c_time = millis();
+		if (c_time - s_time > mouth_duration) {
+			s_time = c_time;
+			mouth_type = random(6);
+			mouth_duration = random(1, 20) * 500;
+		}
 		matrix.write();
 	}
 }
 
+void fig_reflection(char fig_type) {
+	timespeed = 300;
+	flagtime = -1;
+	x = 0;
+	y = 6;
+	flagx = -1;
+	flagy = -1;
+	unsigned long s_time = millis();
+	unsigned long c_time = s_time;
+
+	while ((next_key = kpd.getKey()) == NO_KEY) {
+		c_time = millis();
+
+		//wait fro next step
+		if (c_time - s_time >= timespeed) {
+			s_time = c_time;
+			matrix.fillScreen(LOW);
+			matrix.write();
+
+			if(x == 0 || x == 12) {
+				flagx*= -1;
+			}
+
+			if(y == 0 || y == 12) {
+				flagy*= -1;
+			}
+
+			//draw rect
+			if (fig_type == 0) {
+				matrix.drawRect(x, y, 4, 4, HIGH);
+				matrix.fillRect(x, y, 4, 4, HIGH);
+			//draw circle
+			} else if (fig_type == 1) {
+				matrix.drawCircle( x+2, y+2, 2, HIGH );
+				matrix.fillCircle( x+2, y+2, 2, HIGH );
+			}
+			matrix.write();
+			// Serial.println(x);
+			// Serial.println(y);
+
+			if (timespeed == 20 || timespeed == 320) {
+				flagtime*= -1;
+			}
+
+			timespeed+= 10*flagtime;
+			x+=flagx;
+			y+=flagy;
+		}
+	}
+}
+
+void random_points() {
+	int count = 0;
+	bool exit = false;
+
+	while (!exit) {
+		matrix.fillScreen(LOW);
+
+		while(count++ < 256) {
+			matrix.drawPixel(random(16), random(16), HIGH);
+			matrix.write();
+			delay(20);
+
+			if ((next_key = kpd.getKey()) != NO_KEY) {
+				exit = true;
+				break;
+			}
+		}
+		count = 0;
+	}
+
+}
+
+void growing_rect() {
+	int a = 7, side = 2;
+	unsigned long s_time = millis();
+	unsigned long c_time = s_time;
+	while ((next_key = kpd.getKey()) == NO_KEY) {
+		c_time = millis();
+		
+		//wait for next step
+		if (c_time - s_time >= 500) {
+			s_time = c_time;
+			matrix.fillScreen(LOW);
+			matrix.drawRect(a, a, side, side, HIGH);
+			if (a != 7) {
+				matrix.drawRect(a+1, a+1, side-2, side-2, HIGH);
+			}
+			if (a < 6) {
+				matrix.drawRect(a+2, a+2, side-4, side-4, HIGH);
+			}
+			matrix.write();
+			a--;
+			side+=2;
+
+			if (a < -2) {
+				a = 7;
+				side = 2;
+			}
+		}
+	}
+}
+
+void crazy_lines() {
+	int pos = 0, flagpos = 1;
+	unsigned long s_time = millis();
+	unsigned long c_time = s_time;
+
+	while ((next_key = kpd.getKey()) == NO_KEY) {
+		c_time = millis();
+
+		//wait for next step
+		if (c_time - s_time > 100) {
+			s_time = c_time;
+
+			matrix.fillScreen(LOW);
+			matrix.drawLine(pos, 0, pos, 15, HIGH);
+			matrix.drawLine(0, pos, 15, pos, HIGH);
+			matrix.drawLine(0, 15-pos, 15, 15-pos, HIGH);
+			matrix.write();
+			pos += flagpos;
+
+			if (pos == 15 || pos == 0) {
+				flagpos*=-1;
+			}
+		}
+	}
+}
+
+void light_point() {
+	while((next_key = kpd.getKey()) == NO_KEY) {
+		matrix.fillScreen(LOW);
+		matrix.drawPixel(random(16), random(16), HIGH);
+		matrix.write();
+		delay(20);
+	}
+}
+
 void loop() {
-	// eyes();
+	eyes();
 	char keypressed = kpd.getKey();
-	if (keypressed != NO_KEY) {
+	if (keypressed != NO_KEY || next_key != NO_KEY) {
+		//use addition var for next step
+		if (keypressed == NO_KEY) {
+			keypressed = next_key;
+		}
+		next_key = NO_KEY;
+
 		Serial.println(keypressed);
 		Serial.println(flag);
 
+		//static figures
 		if(flag == 0) {
 			matrix.fillScreen(LOW);
 			matrix.write();
@@ -375,150 +567,31 @@ void loop() {
 				}
 			}
 		}
+		//dynamic figures
 		else if(flag == 1) {
 			switch (keypressed) {
 				case '1': {
-					timespeed = 300;
-					flagtime = -1;
-					x = 0;
-					y = 6;
-					flagx = -1;
-					flagy = -1;
-
-					while (kpd.getKey() == NO_KEY) {
-						matrix.fillScreen(LOW);
-						matrix.write();
-
-						if(x == 0 || x == 12) {
-							flagx*= -1;
-						}
-
-						if(y == 0 || y == 12) {
-							flagy*= -1;
-						}
-
-						matrix.drawRect(x, y, 4, 4, HIGH);
-						matrix.fillRect(x, y, 4, 4, HIGH);
-						matrix.write();
-						Serial.println(x);
-						Serial.println(y);
-
-						if(timespeed == 20 || timespeed == 320) {
-							flagtime*= -1;
-						}
-
-						delay(timespeed);
-						timespeed+= 10*flagtime;
-						x+=flagx;
-						y+=flagy;
-					}
+					fig_reflection(0);
 					break;
 				}
 				case '2': {
-					timespeed = 300;
-					flagtime = -1;
-					x = 0;
-					y = 6;
-					flagx = -1;
-					flagy = -1;
-
-					while (kpd.getKey() == NO_KEY) {
-						matrix.fillScreen(LOW);
-						matrix.write();
-
-						if(x == 0 || x == 11) {
-							flagx*= -1;
-						}
-
-						if(y == 0 || y == 11) {
-							flagy*= -1;
-						}
-
-						matrix.drawCircle( x+2, y+2, 2, HIGH );
-						matrix.fillCircle( x+2, y+2, 2, HIGH );
-						matrix.write();
-						Serial.println(x);
-						Serial.println(y);
-
-						if(timespeed == 20 || timespeed == 320) {
-							flagtime*= -1;
-						}
-
-						delay(timespeed);
-						timespeed+= 10*flagtime;
-						x+=flagx;
-						y+=flagy;
-					}
+					fig_reflection(1);
 					break;
 				}
 				case '3': {
-					int count = 0;
-					bool exit = false;
-
-					while (!exit) {
-						matrix.fillScreen(LOW);
-
-						while(count++ < 256) {
-							matrix.drawPixel(random(16), random(16), HIGH);
-							matrix.write();
-							delay(20);
-
-							if (kpd.getKey() != NO_KEY) {
-								exit = true;
-								break;
-							}
-						}
-						count = 0;
-					}
+					random_points();
 					break;
 				}
 				case '4': {
-					int a = 7, side = 2;
-					while (kpd.getKey() == NO_KEY) {
-						matrix.fillScreen(LOW);
-						matrix.drawRect(a, a, side, side, HIGH);
-						if (a != 7) {
-							matrix.drawRect(a+1, a+1, side-2, side-2, HIGH);
-						}
-						if (a < 6) {
-							matrix.drawRect(a+2, a+2, side-4, side-4, HIGH);
-						}
-						matrix.write();
-						delay(500);
-						a--;
-						side+=2;
-
-						if (a < -2) {
-							a = 7;
-							side = 2;
-						}
-					}
+					growing_rect();
 					break;
 				}
 				case '5': {
-					int pos = 0, flagpos = 1;
-					while (kpd.getKey() == NO_KEY) {
-						matrix.fillScreen(LOW);
-						matrix.drawLine(pos, 0, pos, 15, HIGH);
-						matrix.drawLine(0, pos, 15, pos, HIGH);
-						matrix.drawLine(0, 15-pos, 15, 15-pos, HIGH);
-						matrix.write();
-						delay(100);
-						pos+=flagpos;
-
-						if(pos == 15 || pos == 0) {
-							flagpos*=-1;
-						}
-					}
+					crazy_lines();
 					break;
 				}
 				case '6': {
-					while(kpd.getKey() == NO_KEY) {
-						matrix.fillScreen(LOW);
-						matrix.drawPixel(random(16), random(16), HIGH);
-						matrix.write();
-						delay(20);
-					}
+					light_point();
 					break;
 				}
 				case '7': {
