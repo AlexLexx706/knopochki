@@ -467,7 +467,7 @@ void light_point() {
 }
 
 void loop() {
-	eyes();
+	// eyes();
 	char keypressed = kpd.getKey();
 	if (keypressed != NO_KEY || next_key != NO_KEY) {
 		//use addition var for next step
