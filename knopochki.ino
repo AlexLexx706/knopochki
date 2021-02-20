@@ -113,6 +113,52 @@ void rain() {
 }
 
 
+void matrix_demo() {
+	//simple rain
+	typedef struct DataDesc {
+		short data;
+		unsigned long s_time;
+		unsigned long timeout;
+	};
+	unsigned long s_time, c_time = millis();
+	DataDesc desc[16];
+	int i, j;
+	DataDesc  *cur_desc;
+
+	//init desc
+	for (i = 0; i < sizeof(desc) / sizeof(desc[0]); i++) {
+		desc[i].data = 0;
+		desc[i].s_time = c_time;
+		desc[i].timeout = random(4, 15) * 10;
+	}
+
+	while (1) {
+		//1. update data
+		c_time = millis();
+
+		for (i = 0; i < sizeof(desc) / sizeof(desc[0]); i++) {
+			cur_desc = &desc[i];
+
+			if (c_time - cur_desc->s_time >= cur_desc->timeout) {
+				cur_desc->s_time = c_time;
+				cur_desc->data = cur_desc->data << 1 | (random(2) ? 1 : 0);
+			}
+
+			//2. draw collum
+			for (j = 0; j < 16; j++) {
+				matrix.drawPixel(15 - j, i, (1 << j) & cur_desc->data ? HIGH : LOW);
+			}
+		}
+		matrix.write();
+
+		//wait for timeout and check for the keyboard pressed
+		if ((next_key = kpd.getKey()) != NO_KEY) {
+			return;
+		}
+	}
+}
+
+
 void spiral() {
 	int x = 0;
 	int y = 0;
@@ -467,7 +513,6 @@ void light_point() {
 }
 
 void loop() {
-	// eyes();
 	char keypressed = kpd.getKey();
 	if (keypressed != NO_KEY || next_key != NO_KEY) {
 		//use addition var for next step
@@ -604,6 +649,10 @@ void loop() {
 				}
 				case '9': {
 					eyes();
+					break;
+				}
+				case '*': {
+					matrix_demo();
 					break;
 				}
 				case '0': {
